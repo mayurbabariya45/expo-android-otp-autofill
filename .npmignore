@@ -13,6 +13,9 @@ __tests__
 /android/build/
 /example/
 
+# Compiled JS not used when main points to src (bundler compiles from source)
+build/*.js
+build/**/*.js
 # Source/declaration maps (debug only, not needed at runtime)
 build/*.map
 build/**/*.map
