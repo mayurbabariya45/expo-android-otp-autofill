@@ -4,8 +4,19 @@ export type OnLoadEventPayload = {
   url: string;
 };
 
+export type OnOtpReceivedPayload = {
+  otp: string;
+  /** Full SMS body when received via SMS Retriever API; not set for READ_SMS. */
+  message?: string;
+};
+
+export type OnSmsRetrieverTimeoutPayload = {
+  timedOut: boolean;
+};
+
 export type ExpoAndroidOtpAutofillModuleEvents = {
-  onChange: (params: ChangeEventPayload) => void;
+  onOtpReceived: (payload: OnOtpReceivedPayload) => void;
+  onSmsRetrieverTimeout: (payload: OnSmsRetrieverTimeoutPayload) => void;
 };
 
 export type ChangeEventPayload = {

@@ -1,73 +1,172 @@
-import { useEvent } from 'expo';
-import ExpoAndroidOtpAutofill, { ExpoAndroidOtpAutofillView } from 'expo-android-otp-autofill';
-import { Button, SafeAreaView, ScrollView, Text, View } from 'react-native';
+import { useOtpVerify, type OtpLength } from 'expo-android-otp-autofill';
+import { useState } from 'react';
+import {
+  Button,
+  Platform,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
+
+const OTP_LENGTHS: { label: string; value: OtpLength }[] = [
+  { label: '4 digits', value: 4 },
+  { label: '6 digits', value: 6 },
+  { label: '8 digits', value: 8 },
+];
 
 export default function App() {
-  const onChangePayload = useEvent(ExpoAndroidOtpAutofill, 'onChange');
+  const [numberOfDigits, setNumberOfDigits] = useState<OtpLength>(6);
+  const [code, setCode] = useState('');
+
+  const { hash, otp, message, timeoutError, startListener, stopListener } = useOtpVerify({
+    numberOfDigits,
+    onOtpReceived: (otp) => setCode(otp),
+  });
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView style={styles.container}>
-        <Text style={styles.header}>Module API Example</Text>
-        <Group name="Constants">
-          <Text>{ExpoAndroidOtpAutofill.PI}</Text>
-        </Group>
-        <Group name="Functions">
-          <Text>{ExpoAndroidOtpAutofill.hello()}</Text>
-        </Group>
-        <Group name="Async functions">
-          <Button
-            title="Set value"
-            onPress={async () => {
-              await ExpoAndroidOtpAutofill.setValueAsync('Hello from JS!');
-            }}
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+      >
+        <Text style={styles.title}>OTP Autofill Example</Text>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>OTP code</Text>
+          <TextInput
+            style={styles.input}
+            value={code}
+            onChangeText={setCode}
+            placeholder={`Enter ${numberOfDigits}-digit OTP`}
+            placeholderTextColor="#999"
+            keyboardType="number-pad"
+            maxLength={8}
+            editable
           />
-        </Group>
-        <Group name="Events">
-          <Text>{onChangePayload?.value}</Text>
-        </Group>
-        <Group name="Views">
-          <ExpoAndroidOtpAutofillView
-            url="https://www.example.com"
-            onLoad={({ nativeEvent: { url } }) => console.log(`Loaded: ${url}`)}
-            style={styles.view}
-          />
-        </Group>
+          <Text style={styles.hint}>
+            {Platform.OS === 'android'
+              ? `SMS Retriever: send an SMS with app hash + ${numberOfDigits}-digit code (≤140 bytes).`
+              : 'Run on Android to auto-fill OTP from SMS.'}
+          </Text>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>OTP length</Text>
+          <View style={styles.row}>
+            {OTP_LENGTHS.map(({ label, value }) => (
+              <Button
+                key={value}
+                title={label}
+                onPress={() => setNumberOfDigits(value)}
+                color={numberOfDigits === value ? '#0a7ea4' : '#666'}
+              />
+            ))}
+          </View>
+          <Text style={styles.hint}>
+            Match {numberOfDigits}-digit codes in SMS (e.g. 1234 or 123456).
+          </Text>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Controls</Text>
+          <View style={styles.row}>
+            <Button title="Start listener" onPress={startListener} />
+            <Button title="Stop listener" onPress={stopListener} />
+          </View>
+        </View>
+
+        {timeoutError && (
+          <View style={styles.section}>
+            <Text style={styles.timeoutHint}>Timed out. Tap "Start listener" to retry.</Text>
+          </View>
+        )}
+
+        {hash != null && (
+          <View style={styles.section}>
+            <Text style={styles.hint} numberOfLines={1}>App hash: {hash}</Text>
+          </View>
+        )}
+
+        {otp != null && (
+          <View style={styles.section}>
+            <Text style={styles.lastOtp}>Last received: {otp}</Text>
+          </View>
+        )}
+
+        <View style={styles.footer}>
+          <Text style={styles.footerText}>Android only • expo-android-otp-autofill</Text>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
 }
 
-function Group(props: { name: string; children: React.ReactNode }) {
-  return (
-    <View style={styles.group}>
-      <Text style={styles.groupHeader}>{props.name}</Text>
-      {props.children}
-    </View>
-  );
-}
-
-const styles = {
-  header: {
-    fontSize: 30,
-    margin: 20,
-  },
-  groupHeader: {
-    fontSize: 20,
-    marginBottom: 20,
-  },
-  group: {
-    margin: 20,
-    backgroundColor: '#fff',
-    borderRadius: 10,
-    padding: 20,
-  },
+const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#eee',
+    backgroundColor: '#f5f5f5',
   },
-  view: {
+  scroll: {
     flex: 1,
-    height: 200,
   },
-};
+  content: {
+    padding: 20,
+    paddingBottom: 40,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: '700',
+    marginBottom: 24,
+    color: '#111',
+  },
+  section: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 12,
+    color: '#333',
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    padding: 14,
+    fontSize: 18,
+    marginBottom: 8,
+  },
+  hint: {
+    fontSize: 13,
+    color: '#666',
+  },
+  row: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 8,
+  },
+  lastOtp: {
+    fontSize: 14,
+    color: '#0a7ea4',
+    fontWeight: '500',
+  },
+  timeoutHint: {
+    fontSize: 13,
+    color: '#c00',
+  },
+  footer: {
+    marginTop: 24,
+    alignItems: 'center',
+  },
+  footerText: {
+    fontSize: 12,
+    color: '#999',
+  },
+});

@@ -1,8 +1,5 @@
 {
-  "platforms": ["apple", "android", "web"],
-  "apple": {
-    "modules": ["ExpoAndroidOtpAutofillModule"]
-  },
+  "platforms": ["android"],
   "android": {
     "modules": ["expo.modules.androidotpautofill.ExpoAndroidOtpAutofillModule"]
   }
