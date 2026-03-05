@@ -61,7 +61,6 @@ useEffect(() => {
 | Name | Description |
 |------|-------------|
 | `useOtpVerify(options)` | Hook (SMS Retriever): `numberOfDigits`, `onOtpReceived`; returns `hash`, `otp`, `message`, `timeoutError`, `startListener`, `stopListener`. |
-| `OTP_EVENT_NAME` | `'onOtpReceived'` |
 | `startOtpListener(options?)` | Starts SMS polling (READ_SMS); optional `length` (4–8, default 6). Requests permission if needed. |
 | `stopOtpListener()` | Stops the READ_SMS listener. |
 | `getAppHash()` | **Promise\<string | null\>** — Returns the 11-char app hash for SMS Retriever messages. |
@@ -69,7 +68,6 @@ useEffect(() => {
 | `stopSmsRetrieverListener()` | Stops the SMS Retriever listener. |
 | `addSmsRetrieverTimeoutListener(callback)` | Called when SMS Retriever times out (~5 min). Use for "Resend" / "Didn't get code?". |
 | `addOtpListener(callback)` | Subscribes to OTP events; returns unsubscribe function. |
-| `SMS_RETRIEVER_TIMEOUT_EVENT_NAME` | `'onSmsRetrieverTimeout'` — event name for timeout. |
 
 ---
 
