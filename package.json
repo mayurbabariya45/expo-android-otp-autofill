@@ -1,6 +1,6 @@
 {
   "name": "expo-android-otp-autofill",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Android-only Expo module to auto-detect OTP from SMS and fill your verification field. READ_SMS and Play Services Auth are declared in the module. No config plugin or third-party OTP library required.",
   "main": "src/index.ts",
   "types": "build/index.d.ts",
