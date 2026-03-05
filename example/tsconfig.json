@@ -1,0 +1,10 @@
+{
+  "extends": "expo/tsconfig.base",
+  "compilerOptions": {
+    "strict": true,
+    "paths": {
+      "expo-android-otp-autofill": ["../src/index"],
+      "expo-android-otp-autofill/*": ["../src/*"]
+    }
+  }
+}
