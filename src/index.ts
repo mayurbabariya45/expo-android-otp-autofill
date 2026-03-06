@@ -1,5 +1,7 @@
 export {
   startOtpListener,
+  startOtpListenerAsync,
+  requestReadSmsPermission,
   stopOtpListener,
   addOtpListener,
   getAppHash,

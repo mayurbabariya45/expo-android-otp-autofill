@@ -1,4 +1,4 @@
-import { Platform } from 'react-native';
+import { Platform, PermissionsAndroid } from 'react-native';
 
 import ExpoAndroidOtpAutofill from './ExpoAndroidOtpAutofill';
 import type { ExpoAndroidOtpAutofillModuleEvents } from './ExpoAndroidOtpAutofill.types';
@@ -32,8 +32,53 @@ export type StartOtpListenerOptions = {
 };
 
 /**
+ * Request READ_SMS permission on Android. Shows the system permission dialog.
+ * Use this before starting the READ_SMS listener, or use startOtpListenerAsync().
+ * @returns true if already granted or user granted, false if denied. No-op on iOS/web (returns true).
+ */
+export async function requestReadSmsPermission(): Promise<boolean> {
+  if (Platform.OS !== 'android') return true;
+  try {
+    const granted = await PermissionsAndroid.request(
+      PermissionsAndroid.PERMISSIONS.READ_SMS,
+      {
+        title: 'Read SMS for OTP',
+        message: 'This app needs to read SMS to auto-fill your verification code.',
+        buttonNeutral: 'Ask Me Later',
+        buttonNegative: 'Deny',
+        buttonPositive: 'Allow',
+      }
+    );
+    return granted === PermissionsAndroid.RESULTS.GRANTED;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Request READ_SMS permission, then start listening for OTP in incoming SMS.
+ * Call `stopOtpListener()` when done. Prefer this over startOtpListener() so the permission dialog is shown.
+ * No-op on iOS and web.
+ * @param options Optional `{ length: 4|5|6|7|8 }`. Default 6 when omitted.
+ * @returns true if listener started (permission granted), false if permission denied.
+ */
+export async function startOtpListenerAsync(options?: StartOtpListenerOptions): Promise<boolean> {
+  if (Platform.OS !== 'android' || !ExpoAndroidOtpAutofill?.startOtpListener) return false;
+  const granted = await requestReadSmsPermission();
+  if (!granted) return false;
+  const length = options?.length;
+  if (length != null && length >= 4 && length <= 8) {
+    ExpoAndroidOtpAutofill.startOtpListener(length);
+  } else {
+    ExpoAndroidOtpAutofill.startOtpListener();
+  }
+  return true;
+}
+
+/**
  * Start listening for incoming SMS and parsing OTP of the given length.
- * Requests READ_SMS permission if needed. Call `stopOtpListener()` when done.
+ * On Android, request READ_SMS first with requestReadSmsPermission() or use startOtpListenerAsync()
+ * so the system permission dialog is shown. Call `stopOtpListener()` when done.
  * No-op on iOS and web.
  * @param options Optional `{ length: 4|5|6|7|8 }`. Default 6 when omitted.
  */

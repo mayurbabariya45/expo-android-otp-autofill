@@ -27,6 +27,8 @@ npx expo prebuild --platform android
 
 **Recommended – useOtpVerify** (SMS Retriever, no permission):
 
+Your **backend must include the app hash** in every OTP SMS (see “Why is useOtpVerify not reading the message?” below if `otp` / `message` stay empty).
+
 ```ts
 import { useOtpVerify } from 'expo-android-otp-autofill';
 
@@ -34,25 +36,54 @@ const { hash, otp, message, timeoutError, startListener, stopListener } = useOtp
   numberOfDigits: 4,
   onOtpReceived: (otp) => setValue('user_entered_otp', otp, { shouldValidate: true }),
 });
-// hash for your SMS template; otp/message when SMS arrives; timeoutError for "Resend".
+// Use hash in your SMS template; otp/message when SMS arrives; timeoutError for "Resend".
 ```
 
-**READ_SMS mode (imperative API):**
+**READ_SMS mode (any SMS format; shows permission dialog):**
+
+Use `startOtpListenerAsync()` so the app requests READ_SMS and shows the system permission dialog before listening:
 
 ```ts
 import {
   addOtpListener,
-  startOtpListener,
+  startOtpListenerAsync,
   stopOtpListener,
 } from 'expo-android-otp-autofill';
 
 useEffect(() => {
   const remove = addOtpListener((otp) => setValue('user_entered_otp', otp, { shouldValidate: true }));
-  startOtpListener({ length: 6 });
+  startOtpListenerAsync({ length: 6 }); // requests READ_SMS, then starts listener
   return () => {
     stopOtpListener();
     remove();
   };
+}, []);
+```
+
+To show the permission dialog at a specific time (e.g. on a button press), use `requestReadSmsPermission()` first, then `startOtpListener()`.
+
+### Why is `useOtpVerify` not reading the message / not giving OTP?
+
+`useOtpVerify` uses the **SMS Retriever API**. Android delivers an SMS to your app **only if** the message matches Google’s rules. If any of the following are wrong, you will not get `otp` or `message`:
+
+| Requirement | What to do |
+|-------------|------------|
+| **App hash in SMS** | The SMS **must** contain the exact 11-character hash from `getAppHash()`. Your backend must append it to every OTP SMS (e.g. `Your code is 123456\nAbCdEfGhIjK`). Without it, the system never gives the SMS to your app. |
+| **Hash matches build** | Debug and release builds have **different** hashes (different signing keys). Use the hash from the same build you’re testing (e.g. run the app, log `hash` from the hook, send that to your backend for testing). |
+| **Message length** | SMS must be **≤ 140 bytes**. Shorten the template if needed. |
+| **Format** | Follow [Google’s verification message format](https://developers.google.com/identity/sms-retriever/verify#1_construct_a_verification_message) (e.g. hash at end, no other app’s hash). |
+| **Listener active** | The listener is started when the screen mounts. If the SMS arrives before the listener is ready or after it timed out (~5 min), call `startListener()` and send the SMS again. |
+| **Device** | Needs Google Play Services. Emulators with Play Services are OK. |
+
+**If you can’t change the SMS template** (e.g. third-party provider, fixed format): use **READ_SMS mode** instead so the app can read any recent SMS. You’ll get a one-time permission dialog:
+
+```ts
+import { addOtpListener, startOtpListenerAsync, stopOtpListener } from 'expo-android-otp-autofill';
+
+useEffect(() => {
+  const remove = addOtpListener((otp) => setValue('user_entered_otp', otp, { shouldValidate: true }));
+  startOtpListenerAsync({ length: 6 });
+  return () => { stopOtpListener(); remove(); };
 }, []);
 ```
 
@@ -61,7 +92,9 @@ useEffect(() => {
 | Name | Description |
 |------|-------------|
 | `useOtpVerify(options)` | Hook (SMS Retriever): `numberOfDigits`, `onOtpReceived`; returns `hash`, `otp`, `message`, `timeoutError`, `startListener`, `stopListener`. |
-| `startOtpListener(options?)` | Starts SMS polling (READ_SMS); optional `length` (4–8, default 6). Requests permission if needed. |
+| `requestReadSmsPermission()` | **Promise\<boolean\>** — Requests READ_SMS; shows system dialog. Use before READ_SMS mode or use `startOtpListenerAsync()`. |
+| `startOtpListenerAsync(options?)` | **Promise\<boolean\>** — Requests READ_SMS, then starts SMS polling. Use this so the permission dialog is shown. |
+| `startOtpListener(options?)` | Starts SMS polling (READ_SMS); optional `length` (4–8, default 6). Call `requestReadSmsPermission()` or `startOtpListenerAsync()` first to show the dialog. |
 | `stopOtpListener()` | Stops the READ_SMS listener. |
 | `getAppHash()` | **Promise\<string | null\>** — Returns the 11-char app hash for SMS Retriever messages. |
 | `startSmsRetrieverListener(options?)` | Starts SMS Retriever (no permission). Message must include app hash; ~5 min timeout. |

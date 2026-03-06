@@ -21,7 +21,7 @@ export default function App() {
   const [numberOfDigits, setNumberOfDigits] = useState<OtpLength>(6);
   const [code, setCode] = useState('');
 
-  const { hash, otp, message, timeoutError, startListener, stopListener } = useOtpVerify({
+  const { hash, otp, timeoutError, startListener, stopListener } = useOtpVerify({
     numberOfDigits,
     onOtpReceived: (otp) => setCode(otp),
   });
